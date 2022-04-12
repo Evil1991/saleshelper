@@ -1,5 +1,5 @@
 .App {
-  text-align: center;
+  text-align: left;
 }
 
 .App-logo {
@@ -25,7 +25,7 @@
 }
 
 .App-link {
-  color: #61dafb;
+  color: #850b9a;
 }
 
 @keyframes App-logo-spin {
@@ -35,4 +35,33 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.block{
+  margin-bottom: 20px;
+}
+
+.block .item-list{
+  margin-left: 20px;
+  margin-top: 20px;
+}
+
+.block .item-list li{
+  margin-bottom: 5px;
+}
+
+.find-block{
+  padding:40px;
+  background:#EEE;
+}
+.find-block h1{
+  margin-bottom: 30px;
+  text-align:center;
+}
+
+.input-form{
+  margin-bottom: 10px;
+}
+.formValue2{
+  margin-left: 10px;
 }
