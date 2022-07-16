@@ -65,3 +65,20 @@
 .formValue2{
   margin-left: 10px;
 }
+
+.message textarea{
+  width:100%;
+}
+.fixed-block{
+  position:sticky;
+  top:30px;
+}
+.find-universal-company .big-input {
+  padding:5px;
+  font-size: 24px;
+  width: 100%;
+}
+
+.find-universal-company .input-form label {
+  width: 100%;
+}

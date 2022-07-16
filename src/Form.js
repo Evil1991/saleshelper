@@ -1,8 +1,11 @@
 import './App.css';
 import React from 'react';
+import Context from "./Context";
 
 class Form extends React.Component {
+    static contextType = Context;
     constructor(props) {
+
         super(props); // вызов родительского конструктора
         this.state = {
             formValue: '',
@@ -21,6 +24,7 @@ class Form extends React.Component {
     }
 
     handleChange(event) {
+        this.context.getValue(this.props.var, event.target.value);
         this.setState({formValue: event.target.value});
         if(!this.validate(event.target.value))
             this.setState({error: this.props.error});
@@ -48,7 +52,8 @@ class Form extends React.Component {
         this.state.links = [];
         this.links.map((link,index) => {
             let linkText = link.linkMask.replace('#LINK#', encodeURIComponent(this.state.value));
-            linkText = linkText.replace('#LINK_WITHOUT_DOT#', encodeURIComponent(this.state.value.replaceAll('.','')));
+            linkText = linkText.replace('#DIRECTLINK#', this.state.value);
+            linkText = linkText.replace('#LINK_WITHOUT_DOT#', encodeURIComponent(this.state.value.toString().replaceAll('.','')));
             let obj = {name:link.name, link:linkText}
             this.state.links.push(obj);
         })

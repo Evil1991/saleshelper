@@ -1,34 +1,174 @@
+/**
+ * @TODO
+ * 1. Добавить к домену парсинг: телефон, емайл, группы в соц сетях
+ * 2. По повторению паттерна в тайтле пробовать выявлять название
+ * 3. Отдельно вычислять ссылку на контакты и там тоже смотреть инфу
+ * 4. По никам смотреть ответ сервера, там где 404 подсвечивать красным
+ * 5. Добавить подсказку, как работать с каждым пунктом
+ */
 import './App.css';
-import React from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import Form from './Form.js';
 import 'bootstrap/dist/css/bootstrap.css';
 import {Building, People} from 'react-bootstrap-icons';
+import CyrillicToTranslit from 'cyrillic-to-translit-js';
+import translateDictionary from './dictionary.js';
+import CompanyUniversalForm from './CompanyUniversalForm.js';
+import Context from './Context';
 
-function App() {
-  return (
-    <div className="App">
-        <div className="container">
-            <div className="find-company find-block">
-                <div className="row"><Building className="left-icon" size={32}/><h1>Найти человека по компании</h1></div>
-                <DomainForm name="домену компании" error="Введите корректный домен" blockClass="domain"/>
-                <INNForm name="ИНН или ОГРН" error="Введите корректный ИНН или ОГРН" blockClass="inn"/>
-                <CompanyNameForm name="названию" error="Введите корректное название" blockClass="company-name"/>
-            </div>
-        </div>
-        <br />
-        <div className="container">
-            <div className="find-people find-block">
-                <div className="row"><People className="left-icon" size={32}/><h1>Найти контакты человека</h1></div>
-                <GuyForm name="Имя Фамилия" error="Введите имя и фамилию, либо фамилию" blockClass="guy"/>
-                <EmailForm name="Email" error="Введите email" blockClass="email"/>
-                <PhoneForm name="телефону вида 79990000000" error="Введите телефон вида 79990000000" blockClass="phone"/>
-                <NickForm name="нику или ссылке на соц сети" error="Введите ник или ссылку на соц-сети" blockClass="nick"/>
-            </div>
-        </div>
-    </div>
-  );
+Object.defineProperty(String.prototype, 'capitalize', {
+    value: function() {
+        return this.charAt(0).toUpperCase() + this.slice(1);
+    },
+    enumerable: false
+});
+
+const texts = {
+    'subject' : 'По поводу вакансии react-специалиста в аустафф',
+    'bodyMail' : 'Здравствуйте, #GUY#, увидел у вас вакансию react-специалиста в #COMPANYNAME#. Мы компания, предоставляющая специалистов в аутстаф. Рассмотрите такой вариант? Можем отправить вам CV и рейт специалиста. ',
+    'bodyMessenger' : '#GUY#, здравствуйте, обратил внимание, что #COMPANYNAME# активно нанимает react-специалистов, у нас как раз есть свободный в аутстафф, подскажите, с кем можно связаться по этому вопросу?',
 }
 
+
+
+function App() {
+    const cyrillicToTranslit = new CyrillicToTranslit();
+
+    const [vars, setVars] = useState({});
+    const [email, setEmail] = useState('');
+    const [guy, setGuy] = useState('');
+    const [data, setData] = useState({});
+    const [message, setMessage] = useState('Добавьте имя и компанию');
+    const [copyState, setCopyState] = useState('');
+
+    const textAreaRef = useRef(null);
+
+    const getValue = (name, val) => {
+        vars[name] = val.trim();
+        setVars(vars);
+        if(vars.email !== undefined){
+            setEmail(vars.email);
+        }
+        if(vars.guy !== undefined) {
+            let guyName = vars.guy.trim();
+            guyName = guyName.split(' ');
+            guyName = guyName[0];
+
+            if (translateDictionary[guyName.toLowerCase()] !== undefined)
+                guyName = translateDictionary[guyName.toLowerCase()];
+            else
+                guyName = cyrillicToTranslit.reverse(guyName);
+
+            guyName = guyName.capitalize();
+            setGuy(guyName);
+            setMessage(texts.bodyMessenger.replaceAll('#GUY#', guyName).replaceAll('#COMPANYNAME#', vars.companyName));
+        }
+
+    }
+
+    const getValueObject = (obj) => {
+        setData({...obj});
+    }
+
+    const copyToClipboard = (e) => {
+        textAreaRef.current.select();
+        document.execCommand('copy');
+        // This is just personal preference.
+        // I prefer to not show the whole text area selected.
+        e.target.focus();
+        setCopyState('Скопировано!');
+        setTimeout(() => setCopyState(''), 3000);
+    };
+
+
+  return (
+      <Context.Provider value={{getValue, getValueObject}}>
+        <div className="App">
+            <div className="container">
+                <div className="row">
+                    <div className="find-universal-company find-block">
+                        <div className="row"><Building className="left-icon" size={32}/><h1>Поиск информации о компании</h1></div>
+                        <CompanyUniversalForm var="companyUniversal" name="домену, названию, ИНН или ОРГН компании" error="Не распознаны данные" />
+                    </div>
+                </div>
+            </div>
+            <NewTable {...data} />
+            <br />
+            <div className="container">
+                <div className="row">
+                    <div className="find-company find-block">
+                        <div className="row"><Building className="left-icon" size={32}/><h1>Найти человека по компании</h1></div>
+                        <DomainForm var="domain" name="домену компании" error="Введите корректный домен"/>
+                        <INNForm var="INN" name="ИНН или ОГРН" error="Введите корректный ИНН или ОГРН" />
+                        <CompanyNameForm var="companyName" name="названию" error="Введите корректное название"/>
+                    </div>
+                </div>
+            </div>
+            <br />
+            <div className="container">
+                <div className="row">
+                    <div className="find-people find-block col-md-7">
+                        <div className="row"><People className="left-icon" size={32}/><h1>Найти контакты человека</h1></div>
+                        <GuyForm var="guy" name="Имя Фамилия" error="Введите имя и фамилию, либо фамилию"/>
+                        <EmailForm var="email" name="Email" error="Введите email"/>
+                        <PhoneForm var="phone" name="телефону вида 79990000000" error="Введите телефон вида 79990000000"/>
+                        <NickForm var="nick" name="нику или ссылке на соц сети" error="Введите ник или ссылку на соц-сети"/>
+                        <GitHubForm var="github" name="ссылке на коммит в гитхабе" error="Введите ссылку на коммит"/>
+                    </div>
+                    <div className="message col-md-5">
+                        <div className="fixed-block">
+                            <textarea ref={textAreaRef} onClick={copyToClipboard} name="" id="" cols="30" rows="10" value={message} />
+                            {copyState ? <div className="alert alert-success">{copyState}</div> : ''}
+                            <SendEmail email={email} guy={guy} companyName={vars.companyName} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </Context.Provider>
+  );
+}
+//
+function NewTable(props){
+    return <div className="data-table">
+        <table>
+            <thead>
+            <tr>
+                <th>Компания</th>
+                <th>Адрес сайта</th>
+                <th>ИНН или ОГРН</th>
+                <th></th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td>{props.companyName}</td>
+                <td>{props.domain}</td>
+                <td>{props.INN}</td>
+                <td></td>
+                <td></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+}
+
+
+function SendEmail(props){
+    const [elink, setElink] = useState('mailto:' + props.email);
+
+    useEffect(() => {
+        let newText = texts.bodyMail.replaceAll('#GUY#', props.guy).replaceAll('#COMPANYNAME#', props.companyName);
+        setElink('mailto:' + props.email + '?subject='+encodeURIComponent(texts.subject)+'&body='+encodeURIComponent(newText));
+    });
+
+    return (
+        <div className="emailSend">
+            {props.email ? <a href={elink} target="_blank" className='sendEmail'>Написать</a> : <div className='alert alert-info'>Укажите email, чтобы написать</div>}
+        </div>
+    );
+}
 
 
 function getDomainInfo(domain){
@@ -138,6 +278,7 @@ class GuyForm extends Form{
             {name: 'linkedin.com', linkMask:'https://www.linkedin.com/search/results/people/?keywords=#LINK#&origin=SWITCH_SEARCH_VERTICAL&sid=yfk'},
             {name: 'instagram.com(ссылка общая)', linkMask:'https://www.instagram.com/explore/search/'},
             {name: 'google.com', linkMask:'https://www.google.com/search?q=#LINK#'},
+            {name: 'Чат управление агентством (общая ссылка)', linkMask:'https://t.me/agencyboss'},
         ];
 
         this.handleChange = this.handleChange.bind(this);
@@ -146,6 +287,7 @@ class GuyForm extends Form{
     }
 
     handleChange(event) {
+        this.context.getValue(this.props.var, event.target.value);
         this.setState({formValue: event.target.value});
         if(!this.validate(event.target.value))
             this.setState({error: this.props.error});
@@ -164,12 +306,14 @@ class GuyForm extends Form{
         if(this.length === 0 || !str.trim()) return false;
         return str;
     }
+
+
     renderForm(){
         return(
-            <form className="input-form" onSubmit={this.handleSubmit}>
+            <form className="input-form">
                 <label>
                     <input placeholder="Введите имя фамилию" name="formValue" type="text" value={this.state.formValue} onChange={this.handleChange} />
-                    <input placeholder="Введите профессию" name="formValue2" class="formValue2" type="text" value={this.state.formValue2} onChange={this.handleChange2} />
+                    <input placeholder="Введите профессию" name="formValue2" className="formValue2" type="text" value={this.state.formValue2} onChange={this.handleChange2} />
                 </label>
             </form>
         )
@@ -206,7 +350,11 @@ class PhoneForm extends Form{
     }
     validate(str){
         if(this.length === 0 || !str.trim()) return false;
-        str = str.replaceAll(' ', '');
+        str = str.replaceAll(' ', '')
+            .replaceAll('+', '')
+            .replaceAll('(', '')
+            .replaceAll(')', '')
+            .replaceAll('-', '');
         return str.match(/^\d{11}/i);
     }
 }
@@ -222,15 +370,41 @@ class NickForm extends Form{
             {name: 'linkedin.com', linkMask:'https://www.linkedin.com/in/#LINK#'},
             {name: 'telegram', linkMask:'https://t.me/#LINK_WITHOUT_DOT#'},
             {name: 'хабр карьера', linkMask:'https://career.habr.com/#LINK#'},
+            {name: 'mail.ru', linkMask:'https://my.mail.ru/mail/nick/#LINK#/'},
+            {name: 'twitter.com', linkMask:'https://twiiter.com/#LINK#'},
+            {name: 'github.com', linkMask:'https://github.com/#LINK#'},
+            {name: 'bitbucket.com', linkMask:'https://bitbucket.org/#LINK#'},
+            {name: 'livejournal.ru', linkMask:'https://#LINK#.livejournal.com/'},
+            {name: 'tinder', linkMask:'https://tinder.com/@#LINK#'},
+            {name: 'tripadvisor', linkMask:'https://www.tripadvisor.com/Profile/#LINK#'},
+            {name: 'Яднекс.Музыка', linkMask:'https://music.yandex.ru/users/#LINK#/playlists'},
+            {name: 'Instagram(через другой сервис)', linkMask:'https://www.picuki.com/profile/#LINK#'},
+            {name: 'Одноклассники', linkMask:'https://ok.ru/#LINK#'},
         ];
         this.handleChange = this.handleChange.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
     }
     validate(str){
         if(this.length === 0 || !str.trim()) return false;
-        const match = str.match(/\/?([^/]+)$/i);
+        const match = str.match(/\/?([^/]+)\/?$/i);
         return match[1];
     }
 }
+
+class GitHubForm extends Form{
+    constructor(props) {
+        super(props); // вызов родительского конструктора
+        this.links = [
+            {name: 'GitHub коммит', linkMask:'#DIRECTLINK#.patch'},
+        ];
+        this.handleChange = this.handleChange.bind(this);
+        this.handleSubmit = this.handleSubmit.bind(this);
+    }
+    validate(str){
+        return str;
+    }
+}
+
+
 
 export default App;
